@@ -2,3 +2,4 @@ requests==2.2.1
 jinja2
 PyYAML
 dateutils
+six
