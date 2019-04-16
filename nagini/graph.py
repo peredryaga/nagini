@@ -9,6 +9,10 @@ class CircularDependency(NaginiError):
     pass
 
 
+class NodeAlreadyExists(NaginiError):
+    pass
+
+
 class Node(object):
     def __init__(self, job_class):
         """
@@ -32,6 +36,9 @@ class ExecutionGraph(object):
         self.head = self.create_node(head)
 
     def create_node(self, job):
+        if job in self.jobs_dict:
+            raise NodeAlreadyExists('Node for job %s already exists' % job)
+
         job_node = self.jobs_dict[job] = Node(job)
         return job_node
 
