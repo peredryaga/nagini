@@ -50,7 +50,7 @@ class JobManagerWithRetries(JobManager):
     def execute_job(self, job):
         i = 0
         while True:
-            next_sleep = min(random.random() * (2 ** i), job.retry_backoff)
+            next_sleep = min(random.random() * (2 ** i), job.max_retry_delay)
 
             try:
                 super(JobManagerWithRetries, self).execute_job(job)
