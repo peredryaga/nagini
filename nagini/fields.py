@@ -51,11 +51,14 @@ class BaseField(object):
         """
         return str(value)
 
+    def value_from_dict(self, params):
+        return params.get(self.name)
+
     def __set__(self, instance, value):
         props[self.name] = self.dump(value)
 
     def __get__(self, instance, owner):
-        return self.to_python(props.get(self.name))
+        return self.to_python(self.value_from_dict(props))
 
     def set_default_if_not_exists(self):
         if self.name not in props:
