@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 import pytest
 
-from nagini.graph import CircularDependency, ExecutionGraph, Node, NodeAlreadyExists
+from nagini.v2.graph import CircularDependency, ExecutionGraph, Node, NodeAlreadyExists
 from nagini.job import BaseJob
 
 
@@ -34,7 +34,7 @@ def test_circular_dependency():
 
     class B(BaseJob):
         @classmethod
-        def get_requires(cls, params=None):
+        def get_requires(cls, global_params=None):
             return [A, D]
 
     class D(BaseJob):
@@ -58,10 +58,10 @@ def test_skip_node():
         new_requires = B
 
         @classmethod
-        def get_requires(cls, params=None):
-            if params.get('skip C req'):
+        def get_requires(cls, global_params=None):
+            if global_params.get('skip C req'):
                 return []
-            return super(C, cls).get_requires(params)
+            return super(C, cls).get_requires(global_params)
 
     class D(BaseJob):
         new_requires = (C, B)
