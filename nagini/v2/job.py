@@ -5,11 +5,13 @@ import logging
 
 from six import iteritems
 
-from nagini.v2.base import ClassWithFields
+from nagini.v2.base import ClassWithFields, JobMetaClass
 
 
 class Job(ClassWithFields):
-    new_requires = None
+    __metaclass__ = JobMetaClass
+    requires = None
+
     retries = 0
     max_retry_delay = 0
 
@@ -22,17 +24,13 @@ class Job(ClassWithFields):
     def can_skip(self):
         return False
 
-    @classmethod
-    def get_requires(cls, global_params=None):
-        return cls.new_requires
-
     @property
     def input(self):
         return self._input
 
     @input.setter
     def input(self, jobs):
-        requires = self.get_requires(self.global_params)
+        requires = self.requires
         if isinstance(requires, (tuple, list, set)):
             self._input = [jobs[r].result for r in requires]
         elif isinstance(requires, Job):

@@ -4,41 +4,40 @@ from __future__ import unicode_literals
 import pytest
 
 from nagini.v2.graph import CircularDependency, ExecutionGraph, Node, NodeAlreadyExists
-from nagini.job import BaseJob
+from nagini.v2.job import Job
 
 
 def test_graph():
-    class A(BaseJob):
+    class A(Job):
         pass
 
-    class B(BaseJob):
-        new_requires = A
+    class B(Job):
+        requires = A
 
-    class C(BaseJob):
-        new_requires = B
+    class C(Job):
+        requires = B
 
-    class D(BaseJob):
-        new_requires = (C, B)
+    class D(Job):
+        requires = (C, B)
 
     graph = ExecutionGraph(D)
     graph.build({})
     graph.validate()
 
-    assert graph.head.job_class == D
-    assert map(lambda n: n.job_class, graph.iter_nodes(graph.head)) == [C, B, A, B, A]
+    assert graph.heads[0].job_class == D
+    assert map(lambda n: n.job_class, graph.iter_nodes(graph.heads[0])) == [C, B, A, B, A]
 
 
 def test_circular_dependency():
-    class A(BaseJob):
+    class A(Job):
         pass
 
-    class B(BaseJob):
-        @classmethod
-        def get_requires(cls, global_params=None):
-            return [A, D]
+    class B(Job):
+        def requires(self):
+            return (A, D)
 
-    class D(BaseJob):
-        new_requires = (A, B)
+    class D(Job):
+        requires = (A, B)
 
     graph = ExecutionGraph(D)
     graph.build({})
@@ -48,43 +47,40 @@ def test_circular_dependency():
 
 
 def test_skip_node():
-    class A(BaseJob):
+    class A(Job):
         pass
 
-    class B(BaseJob):
-        new_requires = A
+    class B(Job):
+        requires = A
 
-    class C(BaseJob):
-        new_requires = B
-
-        @classmethod
-        def get_requires(cls, global_params=None):
-            if global_params.get('skip C req'):
+    class C(Job):
+        def requires(self):
+            if self.global_params.get('skip C req'):
                 return []
-            return super(C, cls).get_requires(global_params)
+            return B
 
-    class D(BaseJob):
-        new_requires = (C, B)
+    class D(Job):
+        requires = (C, B)
 
     graph = ExecutionGraph(D)
     graph.build({'skip C req': True})
     graph.validate()
 
-    assert map(lambda n: n.job_class, graph.iter_nodes(graph.head)) == [C, B, A]
+    assert map(lambda n: n.job_class, graph.iter_nodes(graph.heads[0])) == [C, B, A]
 
     graph = ExecutionGraph(D)
     graph.build({})
     graph.validate()
 
-    assert map(lambda n: n.job_class, graph.iter_nodes(graph.head)) == [C, B, A, B, A]
+    assert map(lambda n: n.job_class, graph.iter_nodes(graph.heads[0])) == [C, B, A, B, A]
 
 
 def test_create_node():
-    class A(BaseJob):
+    class A(Job):
         pass
 
-    class B(BaseJob):
-        new_requires = A
+    class B(Job):
+        requires = A
 
     graph = ExecutionGraph(B)
 
@@ -98,13 +94,13 @@ def test_create_node():
 
 
 def test_node():
-    class A(BaseJob):
+    class A(Job):
         pass
 
-    class B(BaseJob):
+    class B(Job):
         pass
 
-    class C(BaseJob):
+    class C(Job):
         pass
 
     node_a = Node(A)

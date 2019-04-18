@@ -7,6 +7,8 @@ from six import iteritems
 
 from nagini.errors import NaginiError
 from nagini.fields import BaseField
+from nagini.utility import cached_property
+from inspect import isfunction
 
 
 class DuplicateFieldName(NaginiError):
@@ -41,8 +43,8 @@ class ClassWithFields(object):
     base_fields = None
 
     def __init__(self, params=None):
-        self.params = AttributeDict(self.clean_params(params or {}))
         self.global_params = params
+        self.params = AttributeDict(self.clean_params(self.global_params or {}))
 
     @classmethod
     def clean_params(cls, params):
@@ -55,3 +57,14 @@ class ClassWithFields(object):
 
             cleaned_data[field.name] = field.to_python(value)
         return cleaned_data
+
+
+class RequiresMetaClass(ABCMeta):
+    def __new__(mcs, name, bases, namespace):
+        if 'requires' in namespace and isfunction(namespace['requires']):
+            namespace['requires'] = cached_property(namespace['requires'])
+        return super(RequiresMetaClass, mcs).__new__(mcs, name, bases, namespace)
+
+
+class JobMetaClass(MetaClassWithFields, RequiresMetaClass):
+    pass

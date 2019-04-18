@@ -16,9 +16,10 @@ class NodeAlreadyExists(NaginiError):
 class Node(object):
     def __init__(self, job_class):
         """
-        :type job_class: nagini.job.BaseJob
+        :type job_class: nagini.v2.job.BaseJob
         """
         self.job_class = job_class
+        self._job = None
         self.children = []
         self.parents = []
 
@@ -26,14 +27,24 @@ class Node(object):
         self.children.append(node)
         node.parents.append(self)
 
+    def init_job(self, params):
+        self._job = self.job_class(params=params)
+
+    @property
+    def job(self):
+        """
+        :rtype: nagini.v2.job.Job
+        """
+        return self._job
+
     def __str__(self):
         return self.job_class.__name__
 
 
 class ExecutionGraph(object):
-    def __init__(self, head):
+    def __init__(self, heads):
         self.jobs_dict = {}
-        self.head = self.create_node(head)
+        self.heads = [self.create_node(head) for head in flatten(heads)]
 
     def create_node(self, job):
         if job in self.jobs_dict:
@@ -58,15 +69,17 @@ class ExecutionGraph(object):
         """
         Check there is no circular dependency
         """
-        self.build_branches(self.head)
+        for head in self.heads:
+            self.build_branches(head)
 
     def build(self, params):
         """Building tree from required jobs of the head job"""
-        check = [self.head]
+        check = self.heads[:]
         while check:
             node = check.pop(0)
+            node.init_job(params)
 
-            for required_job_class in flatten(node.job_class.get_requires(params)):
+            for required_job_class in flatten(node.job.requires):
                 if required_job_class not in self.jobs_dict:
                     required_node = self.create_node(required_job_class)
                     check.append(required_node)
