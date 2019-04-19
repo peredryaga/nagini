@@ -18,8 +18,8 @@ class Job(ClassWithFields):
     def __init__(self, logger=None, *args, **kwargs):
         super(Job, self).__init__(*args, **kwargs)
         self.logger = logger or logging.getLogger('nagini.job.%s' % self.__class__.__name__)
-        self.result = None
-        self._input = {}
+        self._result = None
+        self._input = None
 
     def can_skip(self):
         return False
@@ -28,16 +28,15 @@ class Job(ClassWithFields):
     def input(self):
         return self._input
 
-    @input.setter
-    def input(self, jobs):
+    def update_input(self, all_jobs):
         requires = self.requires
         if isinstance(requires, (tuple, list, set)):
-            self._input = [jobs[r].result for r in requires]
-        elif isinstance(requires, Job):
-            self._input = jobs[requires].result
+            self._input = [all_jobs[r].result for r in requires]
+        elif isinstance(requires, JobMetaClass):
+            self._input = all_jobs[requires].result
         elif isinstance(requires, dict):
-            self._input = {k: jobs[v].result for k, v in iteritems(requires)}
-        else:
+            self._input = {k: all_jobs[v].result for k, v in iteritems(requires)}
+        elif requires is not None:
             raise ValueError('requires() must return BaseJob, list[BaseJob] '
                              'or dict[str, BaseJob]')
 
@@ -57,9 +56,14 @@ class Job(ClassWithFields):
         self.configure()
 
         try:
-            self.result = self.run()
-        except BaseException as e:
+            self._result = self.run()
+        except Exception as e:
             self.on_failure()
             raise
         else:
             self.on_success()
+
+    @property
+    def result(self):
+        # TODO return copy of result
+        return self._result
