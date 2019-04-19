@@ -41,4 +41,4 @@ def test_manager(value):
     manager = JobManager(C)
     manager.run(params)
 
-    assert manager.jobs[C].result == (value * 2 + value) + (2 + 3) - value
+    assert manager.jobs[C].result == (value * 2 + value + 3) + 2 - value

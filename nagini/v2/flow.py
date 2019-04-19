@@ -8,17 +8,13 @@ from nagini.v2.manager import JobManager
 
 
 class Flow(ClassWithFields):
-    requires = None
-    head_job = None
+    heads = None
 
     def __init__(self, params, job_manager=JobManager):
         super(Flow, self).__init__(params=params)
-        self.job_manager = job_manager
+        self.job_manager = job_manager(self.heads) if isclass(job_manager) else job_manager
 
     def configure(self):
-        if isclass(self.job_manager):
-            self.job_manager = self.job_manager(self.head_job)
-
         return self.params
 
     def run(self):
